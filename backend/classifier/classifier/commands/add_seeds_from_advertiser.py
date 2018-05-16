@@ -9,14 +9,14 @@ import click
 import facebook
 import requests
 from classifier.utilities import confs, DB, get_html_text
-# DATABASE_URL="postgres:///facebook_ads" pipenv run ./classify add_seeds_from_id --language en-CA
+# DATABASE_URL="postgres:///facebook_ads" pipenv run ./classify add_seeds_from_advertiser --language en-CA
 
 
 
-@click.command("add_seeds_from_id")
+@click.command("add_seeds_from_advertiser")
 @click.pass_context
 @click.argument("language")
-def add_seeds_from_id(ctx, language):
+def add_seeds_from_advertiser(ctx, language):
     """
     Create a list of seed posts for our classifier by language
     """
@@ -31,14 +31,14 @@ def add_seeds_from_id(ctx, language):
         print("Couldn't find a config for {}".format(language))
         exit()
 
-    with open(os.path.join(conf_dir, 'additional_seed_ids.json'), 'r') as additional_seeds_file:
-        additional_seed_ids = json.load(additional_seeds_file)
+    with open(os.path.join(conf_dir, 'additional_seeds_advertisers.json'), 'r') as additional_seeds_file:
+        additional_seed_advertiser_names = json.load(additional_seeds_file)
 
     with open(os.path.join(conf_dir, 'seeds.json'), 'r') as old_seeds_file:
         seeds = json.load(old_seeds_file)
 
     for politicality in ["political", "not_political"]:
-        records = DB.query("select * from ads where id in ('{}')".format("','".join(map(str, additional_seed_ids[politicality]))))
+        records = DB.query("select * from ads where advertiser = ANY(:advertisers)", advertisers=additional_seed_advertiser_names[politicality])
         for record in records:
             seeds[politicality].append(get_html_text(record["html"]))
 
